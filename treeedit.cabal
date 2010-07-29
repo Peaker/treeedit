@@ -1,0 +1,41 @@
+Name:                treeedit
+Version:             0.0.1
+Cabal-Version:       >= 1.2
+Synopsis:            Tree Editor based on the datastore backend
+Category:            editors, development
+Description:
+  The datastore-based tree editor.
+
+Author:              Eyal Lotem
+Maintainer:          eyal.lotem@gmail.com
+Copyright:           (c) 2010 by Eyal Lotem
+License:             GPL
+Stability:           experimental
+build-type:          Simple
+
+Executable Editor
+  hs-Source-Dirs:      src
+  Extensions:
+  Build-Depends:       base >= 4 && < 5, vtywidgets >= 0.0.6 && < 0.1, binary == 0.5.*,
+                       directory >= 1.0.1.1 && < 1.1, bytestring >= 0.9 && < 1.0, BerkeleyDB >= 0.8 && < 0.9,
+                       random >= 1.0.0 && < 1.1, utf8-string >= 0.3 && < 0.4, vty >= 4.2.1 && < 4.3, fclabels >= 0.4.2 && < 0.5,
+                       containers >= 0.3 && < 0.4, transformers >= 0.2.1 && < 0.3, datastore >= 0.0.1 && < 0.1
+  Other-Modules:       Editor.Data,
+                       Editor.Anchors,
+                       Editor.Config
+  ghc-options:         -O2 -Wall
+  main-is:             Editor/Main.hs
+  ghc-prof-options:    -prof -auto-all
+
+Executable toxml
+  hs-Source-Dirs:      src
+  Extensions:
+  Build-Depends:       base >= 4 && < 5, vtywidgets >= 0.0.6 && < 0.1, binary == 0.5.*,
+                       directory >= 1.0.1.1 && < 1.1, bytestring >= 0.9 && < 1.0, BerkeleyDB >= 0.8 && < 0.9,
+                       random >= 1.0.0 && < 1.1, utf8-string >= 0.3 && < 0.4, vty >= 4.2.1 && < 4.3,
+                       datastore >= 0.0.1 && < 0.1
+  Other-Modules:       Editor.Data,
+                       Editor.Anchors
+  ghc-options:         -O2 -Wall
+  main-is:             Editor/toxml.hs
+  ghc-prof-options:    -prof -auto-all
