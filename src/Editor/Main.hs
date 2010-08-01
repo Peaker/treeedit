@@ -4,35 +4,27 @@
 module Main(main) where
 
 import           Prelude                          hiding ((.))
-import           Control.Arrow                    (first)
-import           Control.Applicative              (pure)
 import           Control.Category                 ((.))
 import           Control.Monad                    (when, liftM)
-import           Data.List.Utils                  (safeIndex)
 import           Data.Store.IRef                  (IRef)
 import qualified Data.Store.Transaction           as Transaction
-import           Data.Store.Transaction           (Transaction, Store)
+import           Data.Store.Transaction           (Transaction)
 import           Data.Store.Property              (composeLabel)
 import qualified Data.Store.Property              as Property
 import qualified Data.Store.Rev.Version           as Version
 import qualified Data.Store.Rev.Branch            as Branch
 import           Data.Store.Rev.View              (View)
 import qualified Data.Store.Rev.View              as View
+import           Data.Store.VtyWidgets            (widgetDownTransaction, makeTextEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
 import           Data.Monoid                      (Monoid(..))
 import           Data.Maybe                       (fromMaybe, fromJust)
-import           Data.Vector.Rect                 (Rect(Rect))
-import           Data.Vector.Vector2              (Vector2(..))
 import qualified Graphics.Vty                     as Vty
-import qualified Graphics.UI.VtyWidgets.Align     as Align
 import qualified Graphics.UI.VtyWidgets.TextView  as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit  as TextEdit
 import qualified Graphics.UI.VtyWidgets.Box       as Box
 import qualified Graphics.UI.VtyWidgets.Spacer    as Spacer
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
-import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import           Graphics.UI.VtyWidgets.Display   (Display)
-import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Run       as Run
 import qualified Data.Store.Db                    as Db
@@ -42,70 +34,13 @@ import qualified Editor.Anchors                   as Anchors
 import           Editor.Anchors                   (DBTag, ViewTag)
 import qualified Editor.Config                    as Config
 
-widthSpace :: Int -> Display a
-widthSpace width = Spacer.make . SizeRange.fixedSize $ Vector2 width 0
-
-indent :: Int -> Display a -> Display a
-indent width disp = Box.makeView Box.Horizontal [widthSpace width, disp]
-
-appendBoxChild :: Monad m =>
-                   Transaction.Property t m Box.Model ->
-                   Transaction.Property t m [a] ->
-                   a -> Transaction t m ()
-appendBoxChild boxModelRef valuesRef value = do
-  values <- Property.get valuesRef
-  Property.set valuesRef (values ++ [value])
-  Property.set boxModelRef . Box.Model . length $ values
+focusableTextView :: String -> Widget a
+focusableTextView =
+  Widget.coloredFocusableDisplay Vty.blue .
+  TextView.make Vty.def_attr
 
 removeAt :: Int -> [a] -> [a]
 removeAt n xs = take n xs ++ drop (n+1) xs
-
-popCurChild :: Monad m =>
-               Transaction.Property t m Box.Model ->
-               Transaction.Property t m [a] ->
-               Transaction t m (Maybe a)
-popCurChild boxModelRef valuesRef = do
-  values <- Property.get valuesRef
-  curIndex <- Box.modelCursor `liftM` Property.get boxModelRef
-  let value = curIndex `safeIndex` values
-  maybe (return ()) (delChild curIndex values) value
-  return value
-  where
-    delChild curIndex values _child = do
-      Property.set valuesRef (curIndex `removeAt` values)
-      when (curIndex >= length values - 1) .
-        Property.pureModify boxModelRef . Box.inModel $ subtract 1
-
-makeBox :: Monad m =>
-           Box.Orientation ->
-           [Widget (Transaction t m ())] ->
-           Transaction.Property t m Box.Model ->
-           Transaction t m (Widget (Transaction t m ()))
-makeBox orientation rows boxModelRef =
-  Box.make orientation (Property.set boxModelRef) rows `liftM`
-  Property.get boxModelRef
-
-makeTextEdit :: Monad m => Int -> Vty.Attr -> Vty.Attr ->
-                Transaction.Property t m TextEdit.Model ->
-                Transaction t m (Widget (Transaction t m ()))
-makeTextEdit maxLines defAttr editAttr textEditModelRef =
-  liftM (fmap (Property.set textEditModelRef) .
-        TextEdit.make "<empty>" maxLines defAttr editAttr) $
-  Property.get textEditModelRef
-
-makeChoiceWidget :: Monad m =>
-                    Box.Orientation ->
-                    [(Widget (Transaction t m ()), k)] ->
-                    Transaction.Property t m Box.Model ->
-                    Transaction t m (Widget (Transaction t m ()), k)
-makeChoiceWidget orientation keys boxModelRef = do
-  widget <- makeBox orientation widgets boxModelRef
-  itemIndex <- Box.modelCursor `liftM` Property.get boxModelRef
-  return (widget, items !! min maxIndex itemIndex)
-  where
-    maxIndex = length items - 1
-    widgets = map fst keys
-    items = map snd keys
 
 makeChildBox :: Monad m =>
                  Int ->
@@ -123,7 +58,7 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
     (mappend
      delNodeKeymap cutNodeKeymap
      curChildIndex) .
-    Widget.atDisplay (indent 5) $
+    Widget.atDisplay (Spacer.indent 5) $
     childBox
   where
     cutNodeKeymap = fromMaybe mempty .
@@ -143,18 +78,6 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
     validateIndex count index
       | 0 <= index && index < count = Just index
       | otherwise = Nothing
-
-focusableTextView :: String -> Widget a
-focusableTextView =
-  Widget.takesFocus .
-  (Widget.atDisplay . Align.to . pure $ 0) .
-  Widget.whenFocused modifyMkImage .
-  Widget.simpleDisplay .
-  TextView.make Vty.def_attr
-  where
-    modifyMkImage mkImage size =
-      mkImage size `mappend`
-      TermImage.rect (Rect (pure 0) size) (first (`Vty.with_back_color` Vty.blue))
 
 makeTreeEdit :: Monad m =>
                 Int -> Transaction.Property ViewTag m [ITreeD] ->
@@ -176,7 +99,7 @@ makeTreeEdit depth clipboardRef treeIRef
               else return []
     cValueEdit <- makeBox Box.Horizontal
                   [collapser isExpanded,
-                   Widget.simpleDisplay $ widthSpace 1,
+                   Widget.simpleDisplay $ Spacer.makeWidthSpace 1,
                    valueEdit]
                   (treeNodeBoxModelRef 2) -- 2 points to valueEdit
     outerBox <- makeBox Box.Vertical (cValueEdit : lowRow) outerBoxModelRef
@@ -251,18 +174,6 @@ makeEditWidget clipboardRef = do
       else Keymap.simpleton "Go up" Config.goUpKey goUp
     goUp = Property.pureModify focalPointIRefsRef (drop 1)
 
--- Take a widget parameterized on transaction on views (that lives in
--- a nested transaction monad) and convert it to one parameterized on
--- the nested transaction
-type MWidget m = m (Widget (m ()))
-widgetDownTransaction :: Monad m =>
-                         Store t m ->
-                         MWidget (Transaction t m) ->
-                         MWidget m
-widgetDownTransaction store = runTrans . (liftM . fmap) runTrans
-  where
-    runTrans = Transaction.run store
-
 branchSelectorBoxModel :: Monad m => Transaction.Property DBTag m Box.Model
 branchSelectorBoxModel = Anchors.dbBoxsAnchor "branchSelector"
 
@@ -291,7 +202,7 @@ makeWidgetForView view = do
         else mempty
 
 main :: IO ()
-main = Db.withDb "/tmp/db.db" $ runDbStore . Anchors.dbStore
+main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
   where
     runDbStore store = do
       Anchors.initDB store

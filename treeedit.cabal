@@ -20,6 +20,7 @@ Executable Editor
                        vtywidgets >= 0.0.6 && < 0.1,
                        vty >= 4.2.1 && < 4.3,
                        datastore >= 0.0 && < 0.1,
+                       datastore-vtywidgets >= 0.0 && < 0.1,
                        containers >= 0.3 && < 0.4,
                        fclabels >= 0.4.2 && < 0.5,
                        binary == 0.5.*
@@ -37,6 +38,7 @@ Executable toxml
                        vtywidgets >= 0.0.6 && < 0.1,
                        vty >= 4.2.1 && < 4.3,
                        datastore >= 0.0 && < 0.1,
+                       datastore-vtywidgets >= 0.0 && < 0.1,
                        fclabels >= 0.4.2 && < 0.5,
                        containers >= 0.3 && < 0.4,
                        binary == 0.5.*
