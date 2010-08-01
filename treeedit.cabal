@@ -37,6 +37,8 @@ Executable toxml
                        vtywidgets >= 0.0.6 && < 0.1,
                        vty >= 4.2.1 && < 4.3,
                        datastore >= 0.0 && < 0.1,
+                       fclabels >= 0.4.2 && < 0.5,
+                       containers >= 0.3 && < 0.4,
                        binary == 0.5.*
   Other-Modules:       Editor.Data,
                        Editor.Anchors,
