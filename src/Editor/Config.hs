@@ -2,28 +2,32 @@
 
 module Editor.Config(
     maxDepth,
-    quitKey, undoKey, goUpKey, appendChildKey, delChildKey,
-    setFocalPointKey, cutKey, pasteKey,
-    makeBranchKey, delBranchKey,
-    actionKey, collapseKey, expandKey, moveToParentKey)
+    quitKeys, undoKeys, goUpKeys, appendChildKeys, delChildKeys,
+    setFocalPointKeys, cutKeys, pasteKeys,
+    makeBranchKeys, delBranchKeys,
+    actionKeys, collapseKeys, expandKeys, moveToParentKeys)
 where
 
 import qualified Graphics.Vty as Vty
+import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 
 maxDepth :: Int
 maxDepth = 10
 
-quitKey = ([Vty.MCtrl], Vty.KASCII 'q')
-undoKey = ([Vty.MCtrl], Vty.KASCII 'z')
-goUpKey = ([Vty.MCtrl], Vty.KASCII 'r')
-appendChildKey = ([Vty.MCtrl], Vty.KASCII 'n')
-delChildKey = ([Vty.MCtrl], Vty.KASCII 'o')
-setFocalPointKey = ([Vty.MCtrl], Vty.KASCII 'g')
-pasteKey = ([Vty.MCtrl], Vty.KASCII 'v')
-cutKey = ([Vty.MCtrl], Vty.KASCII 'x')
-makeBranchKey = ([Vty.MCtrl], Vty.KASCII 's')
-delBranchKey = ([Vty.MCtrl], Vty.KASCII 'o')
-actionKey = ([], Vty.KEnter)
-collapseKey = ([], Vty.KASCII '[')
-expandKey = ([], Vty.KASCII ']')
-moveToParentKey = ([Vty.MMeta], Vty.KLeft)
+ascii k = Keymap.simpletonGroup ([], (Vty.KASCII k))
+ctrl k = Keymap.simpletonGroup ([Vty.MCtrl], Vty.KASCII k)
+
+quitKeys          = ctrl 'q'
+undoKeys          = ctrl 'z'
+goUpKeys          = ctrl 'r'
+appendChildKeys   = ctrl 'n'
+delChildKeys      = ctrl 'o'
+setFocalPointKeys = ctrl 'g'
+pasteKeys         = ctrl 'v'
+cutKeys           = ctrl 'x'
+makeBranchKeys    = ctrl 's'
+delBranchKeys     = ctrl 'o'
+actionKeys        = Keymap.simpletonGroup ([], Vty.KEnter)
+collapseKeys      = ascii '['
+expandKeys        = ascii ']'
+moveToParentKeys  = Keymap.simpletonGroup ([Vty.MMeta], Vty.KLeft)

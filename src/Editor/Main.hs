@@ -62,9 +62,9 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
     childBox
   where
     cutNodeKeymap = fromMaybe mempty .
-                    liftM (Keymap.simpleton "Cut node" Config.cutKey . cutChild)
+                    liftM (Keymap.fromGroup Config.cutKeys "Cut node" . cutChild)
     delNodeKeymap = fromMaybe mempty .
-                    liftM (Keymap.simpleton "Del node" Config.delChildKey . delChild)
+                    liftM (Keymap.fromGroup Config.delChildKeys "Del node" . delChild)
     cutChild index = do
       childrenIRefs <- Property.get childrenIRefsRef
       Property.pureModify clipboardRef (childrenIRefs !! index :)
@@ -87,8 +87,8 @@ makeTreeEdit depth clipboardRef treeIRef
   | depth >= Config.maxDepth =
     return $ Widget.strongerKeys goInKeymap $ focusableTextView "[Go deeper]"
   | otherwise = do
-    valueEdit <- (Widget.atKeymap . Keymap.removeKeys)
-                 [Config.expandKey, Config.collapseKey] `liftM`
+    valueEdit <- (Widget.atKeymap . Keymap.removeGroups)
+                 [Config.expandKeys, Config.collapseKeys] `liftM`
                  makeTextEdit 1 TextEdit.defaultAttr TextEdit.editingAttr
                  valueTextEditModelRef
     isExpanded <- Property.get isExpandedRef
@@ -113,7 +113,7 @@ makeTreeEdit depth clipboardRef treeIRef
             ]
     return . Widget.weakerKeys keymap $ outerBox
     where
-      goInKeymap = Keymap.simpleton "Go deeper" Config.actionKey setFocalPoint
+      goInKeymap = Keymap.fromGroup Config.actionKeys "Go deeper" setFocalPoint
       treeRef = Transaction.fromIRef treeIRef
       valueRef = Data.nodeValue `composeLabel` treeRef
       boxModelsContainer def k = Data.boxModel def k `composeLabel` valueRef
@@ -125,8 +125,8 @@ makeTreeEdit depth clipboardRef treeIRef
       childrenBoxModelRef = boxModelsContainer Box.initModel "children"
       expandCollapseKeymap isExpanded =
         if isExpanded
-        then Keymap.simpleton "Collapse" Config.collapseKey collapse
-        else Keymap.simpleton "Expand" Config.expandKey expand
+        then Keymap.fromGroup Config.collapseKeys "Collapse" collapse
+        else Keymap.fromGroup Config.expandKeys "Expand" expand
       collapse = Property.set isExpandedRef False
       expand = Property.set isExpandedRef True
       collapser isExpanded =
@@ -137,14 +137,14 @@ makeTreeEdit depth clipboardRef treeIRef
         else "[+]"
       pasteKeymap [] = mempty
       pasteKeymap (cbChildRef:xs) =
-        Keymap.simpleton "Paste" Config.pasteKey $ do
+        Keymap.fromGroup Config.pasteKeys "Paste" $ do
           appendChild cbChildRef
           Property.set clipboardRef xs
-      appendNewNodeKeymap = Keymap.simpleton "Append new child node"
-                              Config.appendChildKey $ appendChild =<< Data.makeLeafRef ""
-      moveToParentKeymap = Keymap.simpleton "Move to parent" Config.moveToParentKey .
+      appendNewNodeKeymap = Keymap.fromGroup Config.appendChildKeys "Append new child node" $
+                            appendChild =<< Data.makeLeafRef ""
+      moveToParentKeymap = Keymap.fromGroup Config.moveToParentKeys "Move to parent" .
                            Property.set outerBoxModelRef $ Box.Model 0
-      setFocalPointKeymap = Keymap.simpleton "Set focal point" Config.setFocalPointKey $ setFocalPoint
+      setFocalPointKeymap = Keymap.fromGroup Config.setFocalPointKeys "Set focal point" $ setFocalPoint
       setFocalPoint = Property.pureModify Anchors.focalPointIRefs (treeIRef:)
       appendChild newRef = do
         appendBoxChild childrenBoxModelRef childrenIRefsRef newRef
@@ -164,14 +164,14 @@ makeEditWidget clipboardRef = do
     Widget.strongerKeys (goUpKeymap focalPointIRefs) $
     widget
   where
-    goUpButton = Widget.strongerKeys (Keymap.simpleton "Go up" Config.actionKey goUp) $
+    goUpButton = Widget.strongerKeys (Keymap.fromGroup Config.actionKeys "Go up" goUp) $
                  focusableTextView "[go up]"
     focalPointIRefsRef = Anchors.focalPointIRefs
     isAtRoot = null
     goUpKeymap focalPointIRefs =
       if isAtRoot focalPointIRefs
       then mempty
-      else Keymap.simpleton "Go up" Config.goUpKey goUp
+      else Keymap.fromGroup Config.goUpKeys "Go up" goUp
     goUp = Property.pureModify focalPointIRefsRef (drop 1)
 
 branchSelectorBoxModel :: Monad m => Transaction.Property DBTag m Box.Model
@@ -187,7 +187,7 @@ makeWidgetForView view = do
   return $ Widget.strongerKeys (keymaps versionData) widget
   where
     keymaps versionData = undoKeymap versionData `mappend` makeBranchKeymap
-    makeBranchKeymap = Keymap.simpleton "New Branch" Config.makeBranchKey makeBranch
+    makeBranchKeymap = Keymap.fromGroup Config.makeBranchKeys "New Branch" makeBranch
     makeBranch = do
       branch <- Branch.new =<< View.curVersion view
       textEditModelIRef <- Transaction.newIRef $ TextEdit.initModel "New view"
@@ -195,7 +195,7 @@ makeWidgetForView view = do
       appendBoxChild branchSelectorBoxModel Anchors.branches viewPair
     undoKeymap versionData =
         if Version.depth versionData > 1
-        then Keymap.simpleton "Undo" Config.undoKey .
+        then Keymap.fromGroup Config.undoKeys "Undo" .
              View.move view .
              fromJust . Version.parent $
              versionData
@@ -226,8 +226,8 @@ main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
       return (textEdit, version)
 
     delBranchKeymap [_] = mempty
-    delBranchKeymap _ = Keymap.simpleton "Delete Branch" Config.delBranchKey deleteCurBranch
-    quitKeymap = Keymap.simpleton "Quit" Config.quitKey . fail $ "Quit"
+    delBranchKeymap _ = Keymap.fromGroup Config.delBranchKeys "Delete Branch" deleteCurBranch
+    quitKeymap = Keymap.fromGroup Config.quitKeys "Quit" . fail $ "Quit"
 
     deleteCurBranch = do
       _ <- popCurChild branchSelectorBoxModel Anchors.branches
