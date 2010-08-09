@@ -15,7 +15,7 @@ import qualified Data.Store.Rev.Version           as Version
 import qualified Data.Store.Rev.Branch            as Branch
 import           Data.Store.Rev.View              (View)
 import qualified Data.Store.Rev.View              as View
-import           Data.Store.VtyWidgets            (widgetDownTransaction, makeTextEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
+import           Data.Store.VtyWidgets            (MWidget, widgetDownTransaction, makeTextEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
 import           Data.Monoid                      (Monoid(..))
 import           Data.Maybe                       (fromMaybe, fromJust)
 import qualified Graphics.Vty                     as Vty
@@ -79,6 +79,11 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
       | 0 <= index && index < count = Just index
       | otherwise = Nothing
 
+simpleTextEdit :: Monad m =>
+                  Transaction.Property t m TextEdit.Model ->
+                  MWidget (Transaction t m)
+simpleTextEdit = makeTextEdit "<empty>" 1 TextEdit.defaultAttr TextEdit.editingAttr
+
 makeTreeEdit :: Monad m =>
                 Int -> Transaction.Property ViewTag m [ITreeD] ->
                 IRef TreeD ->
@@ -90,8 +95,7 @@ makeTreeEdit depth clipboardRef treeIRef
     valueEdit <- (Widget.atKeymap . Keymap.removeKeyGroups . concat)
                  [Config.expandKeys, Config.collapseKeys]
                  `liftM`
-                 makeTextEdit 1 TextEdit.defaultAttr TextEdit.editingAttr
-                 valueTextEditModelRef
+                 simpleTextEdit valueTextEditModelRef
     isExpanded <- Property.get isExpandedRef
     lowRow <- if isExpanded
               then ((:[]) .
@@ -233,8 +237,3 @@ main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
     deleteCurBranch = do
       _ <- popCurChild branchSelectorBoxModel Anchors.branches
       return ()
-
-    simpleTextEdit =
-      makeTextEdit 1
-      TextEdit.defaultAttr
-      TextEdit.editingAttr
