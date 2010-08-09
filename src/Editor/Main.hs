@@ -43,12 +43,12 @@ removeAt :: Int -> [a] -> [a]
 removeAt n xs = take n xs ++ drop (n+1) xs
 
 makeChildBox :: Monad m =>
-                 Int ->
-                 Transaction.Property ViewTag m [ITreeD] ->
-                 Transaction.Property ViewTag m Box.Model ->
-                 Transaction.Property ViewTag m Box.Model ->
-                 Transaction.Property ViewTag m [ITreeD] ->
-                 Transaction ViewTag m (Widget (Transaction ViewTag m ()))
+                Int ->
+                Transaction.Property ViewTag m [ITreeD] ->
+                Transaction.Property ViewTag m Box.Model ->
+                Transaction.Property ViewTag m Box.Model ->
+                Transaction.Property ViewTag m [ITreeD] ->
+                Transaction ViewTag m (Widget (Transaction ViewTag m ()))
 makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRefsRef = do
   childItems <- mapM (makeTreeEdit (depth+1) clipboardRef) =<< Property.get childrenIRefsRef
   curChildIndex <- getChildIndex . length $ childItems
