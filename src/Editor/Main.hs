@@ -21,6 +21,7 @@ import           Data.Maybe                       (fromMaybe, fromJust)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TextView  as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit  as TextEdit
+import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Box       as Box
 import qualified Graphics.UI.VtyWidgets.Spacer    as Spacer
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
@@ -82,7 +83,7 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
 simpleTextEdit :: Monad m =>
                   Transaction.Property t m TextEdit.Model ->
                   MWidget (Transaction t m)
-simpleTextEdit = makeTextEdit "<empty>" 1 TextEdit.defaultAttr TextEdit.editingAttr
+simpleTextEdit = makeTextEdit TextEdit.standardTheme "<empty>" 1
 
 makeTreeEdit :: Monad m =>
                 Int -> Transaction.Property ViewTag m [ITreeD] ->
@@ -211,7 +212,7 @@ main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
   where
     runDbStore store = do
       Anchors.initDB store
-      Run.widgetLoopWithOverlay 20 30 . const . makeWidget $ store
+      Run.widgetLoopWithOverlay TableGrid.standardTheme . const . makeWidget $ store
     makeWidget dbStore = widgetDownTransaction dbStore $ do
       view <- Property.get Anchors.view
       branches <- Property.get Anchors.branches
