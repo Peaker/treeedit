@@ -15,7 +15,7 @@ import qualified Data.Store.Rev.Version           as Version
 import qualified Data.Store.Rev.Branch            as Branch
 import           Data.Store.Rev.View              (View)
 import qualified Data.Store.Rev.View              as View
-import           Data.Store.VtyWidgets            (MWidget, widgetDownTransaction, makeTextEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
+import           Data.Store.VtyWidgets            (MWidget, widgetDownTransaction, makeLineEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
 import           Data.Monoid                      (Monoid(..))
 import           Data.Maybe                       (fromMaybe, fromJust)
 import qualified Graphics.Vty                     as Vty
@@ -83,7 +83,7 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
 simpleTextEdit :: Monad m =>
                   Transaction.Property t m TextEdit.Model ->
                   MWidget (Transaction t m)
-simpleTextEdit = makeTextEdit TextEdit.standardTheme "<empty>" 1
+simpleTextEdit = makeLineEdit TextEdit.standardTheme "<empty>"
 
 makeTreeEdit :: Monad m =>
                 Int -> Transaction.Property ViewTag m [ITreeD] ->
