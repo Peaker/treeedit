@@ -23,7 +23,7 @@ writeTreeXml :: Monad m =>
 writeTreeXml outFile depth ref = do
   value <- Property.get $ Data.nodeValue `Property.composeLabel` ref
   childrenIRefs <- Property.get (Data.nodeChildrenRefs `Property.composeLabel` ref)
-  let text = TextEdit.textEditText . Label.get Data.textEditModel $ value
+  let text = TextEdit.textEditText . Label.getL Data.textEditModel $ value
       indent = (replicate (2 * depth) ' ' ++)
   let before = hPutStrLn outFile . indent $ "<" ++ text ++ ">"
   bodies <- mapM (writeTreeXml outFile (depth + 1) . Transaction.fromIRef) childrenIRefs

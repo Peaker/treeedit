@@ -16,7 +16,7 @@ import           Data.Store.IRef                 (IRef)
 import           Data.Store.IRef.Tree            (Tree(..), nodeValue, nodeChildrenRefs)
 import           Data.Store.Transaction          (Transaction)
 import qualified Data.Store.Transaction          as Transaction
-import           Data.Record.Label               ((:->), mkLabels, label)
+import           Data.Record.Label               ((:->), mkLabels, lens)
 import qualified Data.Record.Label.Map           as Label.Map
 import qualified Data.Record.Label.Maybe         as Label.Maybe
 import qualified Graphics.UI.VtyWidgets.Box      as Box
@@ -31,9 +31,9 @@ data Data = Data {
   }
   deriving (Show, Read, Eq, Ord)
 $(mkLabels [''Data])
-boxModels :: Data :-> Map String Box.Model
-textEditModel :: Data :-> TextEdit.Model
-isExpanded :: Data :-> Bool
+-- boxModels :: Data :-> Map String Box.Model
+-- textEditModel :: Data :-> TextEdit.Model
+-- isExpanded :: Data :-> Bool
 
 boxModel :: Box.Model -> String -> Data :-> Box.Model
 boxModel d key = Label.Maybe.fromMaybe d . Label.Map.value key . boxModels
