@@ -219,20 +219,21 @@ main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
       pairs <- mapM pair branches
       (branchSelector, branch) <- makeChoiceWidget Box.Vertical pairs branchSelectorBoxModel
       View.setBranch view branch
-      viewEdit <- Widget.strongerKeys quitKeymap
-                  `liftM` makeWidgetForView view
-      makeBox Box.Horizontal
+      viewEdit <- makeWidgetForView view
+      box <- makeBox Box.Horizontal
         [viewEdit,
          Widget.simpleDisplay Spacer.makeHorizontal,
-         Widget.strongerKeys (delBranchKeymap branches) branchSelector] $
-        Anchors.dbBoxsAnchor "main"
+         Widget.strongerKeys (delBranchKeymap (length branches)) branchSelector]
+        (Anchors.dbBoxsAnchor "main")
+      return $ Widget.strongerKeys quitKeymap box
 
     pair (textEditModelIRef, version) = do
       textEdit <- simpleTextEdit . Transaction.fromIRef $ textEditModelIRef
       return (textEdit, version)
 
-    delBranchKeymap [_] = mempty
-    delBranchKeymap _ = Keymap.fromKeyGroups Config.delBranchKeys "Delete Branch" deleteCurBranch
+    delBranchKeymap numBranches
+      | 1 == numBranches = mempty
+      | otherwise = Keymap.fromKeyGroups Config.delBranchKeys "Delete Branch" deleteCurBranch
     quitKeymap = Keymap.fromKeyGroups Config.quitKeys "Quit" . fail $ "Quit"
 
     deleteCurBranch = do
