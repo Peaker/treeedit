@@ -17,7 +17,6 @@ import           Data.Store.Rev.View              (View)
 import qualified Data.Store.Rev.View              as View
 import           Data.Store.VtyWidgets            (MWidget, widgetDownTransaction, makeLineEdit, makeBox, appendBoxChild, popCurChild, makeChoiceWidget)
 import           Data.Monoid                      (Monoid(..))
-import           Data.Maybe                       (fromMaybe, fromJust)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TextView  as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit  as TextEdit
@@ -62,10 +61,10 @@ makeChildBox depth clipboardRef outerBoxModelRef childrenBoxModelRef childrenIRe
     Widget.atDisplay (Spacer.indent 5) $
     childBox
   where
-    cutNodeKeymap = fromMaybe mempty .
-                    liftM (Keymap.fromKeyGroups Config.cutKeys "Cut node" . cutChild)
-    delNodeKeymap = fromMaybe mempty .
-                    liftM (Keymap.fromKeyGroups Config.delChildKeys "Del node" . delChild)
+    cutNodeKeymap =
+      maybe mempty (Keymap.fromKeyGroups Config.cutKeys "Cut node" . cutChild)
+    delNodeKeymap =
+      maybe mempty (Keymap.fromKeyGroups Config.delChildKeys "Del node" . delChild)
     cutChild index = do
       childrenIRefs <- Property.get childrenIRefsRef
       Property.pureModify clipboardRef (childrenIRefs !! index :)
@@ -190,22 +189,10 @@ makeWidgetForView view = do
   versionData <- Version.versionData =<< View.curVersion view
   widget <- widgetDownTransaction (Anchors.viewStore view) $
             makeEditWidget Anchors.clipboard
-  return $ Widget.strongerKeys (keymaps versionData) widget
+  let undoKeymap = maybe mempty makeUndoKeymap (Version.parent versionData)
+  return $ Widget.strongerKeys undoKeymap widget
   where
-    keymaps versionData = undoKeymap versionData `mappend` makeBranchKeymap
-    makeBranchKeymap = Keymap.fromKeyGroups Config.makeBranchKeys "New Branch" makeBranch
-    makeBranch = do
-      branch <- Branch.new =<< View.curVersion view
-      textEditModelIRef <- Transaction.newIRef $ TextEdit.initModel "New view"
-      let viewPair = (textEditModelIRef, branch)
-      appendBoxChild branchSelectorBoxModel Anchors.branches viewPair
-    undoKeymap versionData =
-        if Version.depth versionData > 1
-        then Keymap.fromKeyGroups Config.undoKeys "Undo" .
-             View.move view .
-             fromJust . Version.parent $
-             versionData
-        else mempty
+    makeUndoKeymap = Keymap.fromKeyGroups Config.undoKeys "Undo" . View.move view
 
 main :: IO ()
 main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
@@ -219,22 +206,31 @@ main = Db.withDb "/tmp/treeedit.db" $ runDbStore . Anchors.dbStore
       pairs <- mapM pair branches
       (branchSelector, branch) <- makeChoiceWidget Box.Vertical pairs branchSelectorBoxModel
       View.setBranch view branch
-      viewEdit <- Widget.strongerKeys quitKeymap
-                  `liftM` makeWidgetForView view
-      makeBox Box.Horizontal
+      viewEdit <- makeWidgetForView view
+      box <- makeBox Box.Horizontal
         [viewEdit,
          Widget.simpleDisplay Spacer.makeHorizontal,
-         Widget.strongerKeys (delBranchKeymap branches) branchSelector] $
-        Anchors.dbBoxsAnchor "main"
+         Widget.strongerKeys (delBranchKeymap (length branches)) branchSelector]
+        (Anchors.dbBoxsAnchor "main")
+      return $ Widget.strongerKeys (mappend quitKeymap makeBranchKeymap) box
 
     pair (textEditModelIRef, version) = do
       textEdit <- simpleTextEdit . Transaction.fromIRef $ textEditModelIRef
       return (textEdit, version)
 
-    delBranchKeymap [_] = mempty
-    delBranchKeymap _ = Keymap.fromKeyGroups Config.delBranchKeys "Delete Branch" deleteCurBranch
-    quitKeymap = Keymap.fromKeyGroups Config.quitKeys "Quit" . fail $ "Quit"
+    delBranchKeymap numBranches
+      | 1 == numBranches = mempty
+      | otherwise =
+        Keymap.fromKeyGroups Config.delBranchKeys "Delete Branch" $ do
+          _ <- popCurChild branchSelectorBoxModel Anchors.branches
+          return ()
 
-    deleteCurBranch = do
-      _ <- popCurChild branchSelectorBoxModel Anchors.branches
-      return ()
+    quitKeymap = Keymap.fromKeyGroups Config.quitKeys "Quit" (fail "Quit")
+
+    makeBranchKeymap =
+      Keymap.fromKeyGroups Config.makeBranchKeys "New Branch" $ do
+        view <- Property.get Anchors.view
+        branch <- Branch.new =<< View.curVersion view
+        textEditModelIRef <- Transaction.newIRef $ TextEdit.initModel "New view"
+        let viewPair = (textEditModelIRef, branch)
+        appendBoxChild branchSelectorBoxModel Anchors.branches viewPair
