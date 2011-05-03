@@ -63,6 +63,7 @@ branchesIRef = IRef.anchor "branches"
 branches :: Monad m => Transaction.Property DBTag m [(IRef TextEdit.Model, Branch)]
 branches = Transaction.fromIRef branchesIRef
 
+-- Initialize an IRef if it does not already exist.
 initRef :: (Binary a, Monad m) => IRef a -> Transaction t m a -> Transaction t m a
 initRef iref act = do
   exists <- Transaction.irefExists iref
