@@ -21,7 +21,7 @@ Executable Editor
                        vty >= 4.6 && < 4.7,
                        datastore >= 0.0 && < 0.1,
                        datastore-vtywidgets >= 0.0 && < 0.1,
-                       containers >= 0.3 && < 0.4,
+                       containers >= 0.3 && < 0.5,
                        fclabels >= 0.11.1.1 && < 0.12,
                        binary == 0.5.*
   Other-Modules:       Editor.Data,
@@ -40,7 +40,7 @@ Executable toxml
                        datastore >= 0.0 && < 0.1,
                        datastore-vtywidgets >= 0.0 && < 0.1,
                        fclabels >= 0.11.1.1 && < 0.12,
-                       containers >= 0.3 && < 0.4,
+                       containers >= 0.3 && < 0.5,
                        binary == 0.5.*
   Other-Modules:       Editor.Data,
                        Editor.Anchors,
